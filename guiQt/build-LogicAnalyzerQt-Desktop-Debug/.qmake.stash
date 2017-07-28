@@ -1,0 +1,16 @@
+QMAKE_DEFAULT_INCDIRS = \
+    /usr/lib64/qt/include \
+    /usr/include/c++/5.3.0 \
+    /usr/include/c++/5.3.0/x86_64-slackware-linux/32 \
+    /usr/include/c++/5.3.0/backward \
+    /usr/lib64/gcc/x86_64-slackware-linux/5.3.0/include \
+    /usr/local/include \
+    /usr/lib64/gcc/x86_64-slackware-linux/5.3.0/include-fixed \
+    /usr/include
+QMAKE_DEFAULT_LIBDIRS = \
+    /usr/lib64/gcc/x86_64-slackware-linux/5.3.0/32 \
+    /usr/x86_64-slackware-linux/lib \
+    /usr/lib \
+    /lib \
+    /usr/lib64/gcc/x86_64-slackware-linux/5.3.0 \
+    /usr/lib64
