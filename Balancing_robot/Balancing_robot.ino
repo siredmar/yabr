@@ -109,7 +109,6 @@ void setup(){
 //Main program loop
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void loop(){
-  received_byte = 0;
   if(Serial.available()){                                                   //If there is serial data available
     received_byte = Serial.read();                                          //Load the received serial data in the received_byte variable
     //Serial.print(received_byte);

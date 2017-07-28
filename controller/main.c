@@ -23,11 +23,18 @@ int baudrate = 9600;
 /* main */
 int main(int argc, char *argv[])
 {
+    if(argc < 2)
+    {
+        printf("Comport missing!\nUsage: controller [port]\n");
+        return -1;
+    }
+
     int comport_fd;
-    comport_fd = rs232_open_port(comport, baudrate);
-    if(comport_fd == -1)
+    comport_fd = RS232_OpenComport(argv[1], baudrate, 8);
+    if(comport_fd == 1)
     {
         fprintf(stderr, "Could not open serial port\n");
+	return -1;
         exit(-1);
     }
 
@@ -83,7 +90,7 @@ int main(int argc, char *argv[])
         if( keystates[ SDLK_UP ] )
         {
             SET_BIT(UartOutput[0], 2);
-            printf("forward ");
+//            printf("forward ");
             keyPress = 1;
         }
 
@@ -91,7 +98,7 @@ int main(int argc, char *argv[])
         if( keystates[ SDLK_DOWN ] )
         {
             SET_BIT(UartOutput[0], 3);
-            printf("back ");
+//            printf("back ");
             keyPress = 1;
         }
 
@@ -99,7 +106,7 @@ int main(int argc, char *argv[])
         if( keystates[ SDLK_LEFT ] )
         {
             SET_BIT(UartOutput[0], 1);
-            printf("left ");
+//            printf("left ");
             keyPress = 1;
         }
 
@@ -107,22 +114,23 @@ int main(int argc, char *argv[])
         if( keystates[ SDLK_RIGHT ] )
         {
             SET_BIT(UartOutput[0], 0);
-            printf("right ");
+//            printf("right ");
             keyPress = 1;
         }
         if(keyPress == 1)
         {
-            rs232_puts(comport_fd, UartOutput, 1);
-            printf("\n");
+            UartOutput[1] = '\0';
+            RS232_cputs(comport_fd, UartOutput);
+//            printf("\n");
         }
-        printf("\t\t%.2x\n", UartOutput[0]);
+//        printf("\t\t%.2x\n", UartOutput[0]);
         usleep(1000);
     }
 
 
 
     /* Clean up */
-    rs232_close_port(comport_fd);
+    RS232_CloseComport(comport_fd);
     SDL_Quit();
     exit(0);
 }
