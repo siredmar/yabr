@@ -13,7 +13,7 @@
 #include <Wire.h>                                            //Include the Wire.h library so we can communicate with the gyro
 
 int gyro_address = 0x68;                                     //MPU-6050 I2C address (0x68 or 0x69)
-int acc_calibration_value = 200;                            //Enter the accelerometer calibration value
+int acc_calibration_value = -200;                            //Enter the accelerometer calibration value
 
 //Various settings
 //float pid_p_gain = 22;                                       //Gain setting for the P-controller (15)
@@ -22,8 +22,8 @@ int acc_calibration_value = 200;                            //Enter the accelero
 float pid_p_gain = 25;                                       //Gain setting for the P-controller (15)
 float pid_i_gain = 1.10;                                      //Gain setting for the I-controller (1.5)
 float pid_d_gain = 25;                                       //Gain setting for the D-controller (30)
-float turning_speed =   50;                                    //Turning speed (20)
-float max_target_speed = 150;                                //Max target speed (100)
+float turning_speed =   90;                                    //Turning speed (20)
+float max_target_speed = 300;                                //Max target speed (100)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Declaring global variables
@@ -188,16 +188,31 @@ void loop(){
   if(pid_output > 10 || pid_output < -10)pid_error_temp += pid_output * 0.015 ;
 
   pid_i_mem += pid_i_gain * pid_error_temp;                                 //Calculate the I-controller value and add it to the pid_i_mem variable
-  if(pid_i_mem > 400)pid_i_mem = 400;                                       //Limit the I-controller to the maximum controller output
-  else if(pid_i_mem < -400)pid_i_mem = -400;
+  if(pid_i_mem > 400)
+  {
+    pid_i_mem = 400;                                       //Limit the I-controller to the maximum controller output
+  }
+  else if(pid_i_mem < -400)
+  {
+    pid_i_mem = -400;
+  }
   //Calculate the PID output value
   pid_output = pid_p_gain * pid_error_temp + pid_i_mem + pid_d_gain * (pid_error_temp - pid_last_d_error);
-  if(pid_output > 400)pid_output = 400;                                     //Limit the PI-controller to the maximum controller output
-  else if(pid_output < -400)pid_output = -400;
+  if(pid_output > 400)
+  {
+    pid_output = 400;                                     //Limit the PI-controller to the maximum controller output
+  }
+  else if(pid_output < -400)
+  {
+    pid_output = -400;
+  }
 
   pid_last_d_error = pid_error_temp;                                        //Store the error for the next loop
 
-  if(pid_output < 5 && pid_output > -5)pid_output = 0;                      //Create a dead-band to stop the motors when the robot is balanced
+  if(pid_output < 5 && pid_output > -5)
+  {
+    pid_output = 0;                      //Create a dead-band to stop the motors when the robot is balanced
+  }
 
   if(angle_gyro > 30 || angle_gyro < -30 || start == 0 || low_bat == 1){    //If the robot tips over or the start variable is zero or the battery is empty
     pid_output = 0;                                                         //Set the PID controller output to 0 so the motors stop moving
@@ -212,54 +227,109 @@ void loop(){
   pid_output_left = pid_output;                                             //Copy the controller output to the pid_output_left variable for the left motor
   pid_output_right = pid_output;                                            //Copy the controller output to the pid_output_right variable for the right motor
 
-  if(received_byte & B00000001){                                            //If the first bit of the receive byte is set change the left and right variable to turn the robot to the left
+  if(received_byte & B00000001)
+  {                                            //If the first bit of the receive byte is set change the left and right variable to turn the robot to the left
     pid_output_left += turning_speed;                                       //Increase the left motor speed
     pid_output_right -= turning_speed;                                      //Decrease the right motor speed
   }
-  if(received_byte & B00000010){                                            //If the second bit of the receive byte is set change the left and right variable to turn the robot to the right
+  if(received_byte & B00000010)
+  {                                            //If the second bit of the receive byte is set change the left and right variable to turn the robot to the right
     pid_output_left -= turning_speed;                                       //Decrease the left motor speed
     pid_output_right += turning_speed;                                      //Increase the right motor speed
   }
 
-  if(received_byte & B00000100){                                            //If the third bit of the receive byte is set change the left and right variable to turn the robot to the right
+  if(received_byte & B00000100)
+  {                                            //If the third bit of the receive byte is set change the left and right variable to turn the robot to the right
     if(pid_setpoint > -2.5)pid_setpoint -= 0.05;                            //Slowly change the setpoint angle so the robot starts leaning forewards
     if(pid_output > max_target_speed * -1)pid_setpoint -= 0.005;            //Slowly change the setpoint angle so the robot starts leaning forewards
   }
-  if(received_byte & B00001000){                                            //If the forth bit of the receive byte is set change the left and right variable to turn the robot to the right
+  if(received_byte & B00001000)
+  {                                            //If the forth bit of the receive byte is set change the left and right variable to turn the robot to the right
     if(pid_setpoint < 2.5)pid_setpoint += 0.05;                             //Slowly change the setpoint angle so the robot starts leaning backwards
     if(pid_output < max_target_speed)pid_setpoint += 0.005;                 //Slowly change the setpoint angle so the robot starts leaning backwards
   }   
 
-  if(!(received_byte & B00001100)){                                         //Slowly reduce the setpoint to zero if no foreward or backward command is given
-    if(pid_setpoint > 0.5)pid_setpoint -=0.05;                              //If the PID setpoint is larger then 0.5 reduce the setpoint with 0.05 every loop
-    else if(pid_setpoint < -0.5)pid_setpoint +=0.05;                        //If the PID setpoint is smaller then -0.5 increase the setpoint with 0.05 every loop
-    else pid_setpoint = 0;                                                  //If the PID setpoint is smaller then 0.5 or larger then -0.5 set the setpoint to 0
+  if(!(received_byte & B00001100))
+  {                                         //Slowly reduce the setpoint to zero if no foreward or backward command is given
+    if(pid_setpoint > 0.5)
+    {
+      pid_setpoint -=0.05;                              //If the PID setpoint is larger then 0.5 reduce the setpoint with 0.05 every loop
+    }
+    else if(pid_setpoint < -0.5)
+    {
+      pid_setpoint +=0.05;                        //If the PID setpoint is smaller then -0.5 increase the setpoint with 0.05 every loop
+    }
+    else 
+    {
+      pid_setpoint = 0;                                                  //If the PID setpoint is smaller then 0.5 or larger then -0.5 set the setpoint to 0
+    }
   }
   
   //The self balancing point is adjusted when there is not forward or backwards movement from the transmitter. This way the robot will always find it's balancing point
-  if(pid_setpoint == 0){                                                    //If the setpoint is zero degrees
-    if(pid_output < 0)self_balance_pid_setpoint += 0.0015;                  //Increase the self_balance_pid_setpoint if the robot is still moving forewards
-    if(pid_output > 0)self_balance_pid_setpoint -= 0.0015;                  //Decrease the self_balance_pid_setpoint if the robot is still moving backwards
+  if(pid_setpoint == 0)
+  {                                                    //If the setpoint is zero degrees
+    if(pid_output < 0)
+    {
+      self_balance_pid_setpoint += 0.0015;                  //Increase the self_balance_pid_setpoint if the robot is still moving forewards
+    }
+    if(pid_output > 0)
+    {
+      self_balance_pid_setpoint -= 0.0015;                  //Decrease the self_balance_pid_setpoint if the robot is still moving backwards
+    }
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //Motor pulse calculations
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //To compensate for the non-linear behaviour of the stepper motors the folowing calculations are needed to get a linear speed behaviour.
-  if(pid_output_left > 0)pid_output_left = 405 - (1/(pid_output_left + 9)) * 5500;
-  else if(pid_output_left < 0)pid_output_left = -405 - (1/(pid_output_left - 9)) * 5500;
+  //To compensate for the non-linear behaviour of the stepper motors the folowing calculations are needed to get a linear speed behaviour
+  float F1 = 405.0;
+  float F2 = 9.0;
+  float F3 = 5500.0;
+  
+  if(pid_output_left > 0)
+  {
+    pid_output_left = F1 - (1/(pid_output_left + F2)) * F3;
+  }
+  else if(pid_output_left < 0)
+  {
+    pid_output_left = -F1 - (1/(pid_output_left - F2)) * F3;
+  }
 
-  if(pid_output_right > 0)pid_output_right = 405 - (1/(pid_output_right + 9)) * 5500;
-  else if(pid_output_right < 0)pid_output_right = -405 - (1/(pid_output_right - 9)) * 5500;
+  if(pid_output_right > 0)
+  {
+    pid_output_right = F1 - (1/(pid_output_right + F2)) * F3;
+  }
+  else if(pid_output_right < 0)
+  {
+    pid_output_right = -F1 - (1/(pid_output_right - F2)) * F3;
+  }
 
   //Calculate the needed pulse time for the left and right stepper motor controllers
-  if(pid_output_left > 0)left_motor = 400 - pid_output_left;
-  else if(pid_output_left < 0)left_motor = -400 - pid_output_left;
-  else left_motor = 0;
+  if(pid_output_left > 0)
+  {
+    left_motor = 400 - pid_output_left;
+  }
+  else if(pid_output_left < 0)
+  {
+    left_motor = -400 - pid_output_left;
+  }
+  else 
+  {
+    left_motor = 0;
+  }
 
-  if(pid_output_right > 0)right_motor = 400 - pid_output_right;
-  else if(pid_output_right < 0)right_motor = -400 - pid_output_right;
-  else right_motor = 0;
+  if(pid_output_right > 0)
+  {
+    right_motor = 400 - pid_output_right;
+  }
+  else if(pid_output_right < 0)
+  {
+    right_motor = -400 - pid_output_right;
+  }
+  else 
+  {
+    right_motor = 0;
+  }
 
   //Copy the pulse time to the throttle variables so the interrupt subroutine can use them
   throttle_left_motor = left_motor;
@@ -289,9 +359,14 @@ ISR(TIMER2_COMPA_vect){
     }
     else PORTD |= 0b00001000;                                               //Set output 3 high for a forward direction of the stepper motor
   }
-  else if(throttle_counter_left_motor == 1)PORTD |= 0b00000100;             //Set output 2 high to create a pulse for the stepper controller
-  else if(throttle_counter_left_motor == 2)PORTD &= 0b11111011;             //Set output 2 low because the pulse only has to last for 20us 
-  
+  else if(throttle_counter_left_motor == 1)
+  {
+    PORTD |= 0b00000100;             //Set output 2 high to create a pulse for the stepper controller
+  }
+  else if(throttle_counter_left_motor == 2)
+  {
+    PORTD &= 0b11111011;             //Set output 2 low because the pulse only has to last for 20us 
+  }
   //right motor pulse calculations
   throttle_counter_right_motor ++;                                          //Increase the throttle_counter_right_motor variable by 1 every time the routine is executed
   if(throttle_counter_right_motor > throttle_right_motor_memory){           //If the number of loops is larger then the throttle_right_motor_memory variable
@@ -303,8 +378,14 @@ ISR(TIMER2_COMPA_vect){
     }
     else PORTD &= 0b11011111;                                               //Set output 5 high for a forward direction of the stepper motor
   }
-  else if(throttle_counter_right_motor == 1)PORTD |= 0b00010000;            //Set output 4 high to create a pulse for the stepper controller
-  else if(throttle_counter_right_motor == 2)PORTD &= 0b11101111;            //Set output 4 low because the pulse only has to last for 20us
+  else if(throttle_counter_right_motor == 1)
+  {
+    PORTD |= 0b00010000;            //Set output 4 high to create a pulse for the stepper controller
+  }
+  else if(throttle_counter_right_motor == 2)
+  {
+    PORTD &= 0b11101111;            //Set output 4 low because the pulse only has to last for 20us
+  }
 }
 
 
