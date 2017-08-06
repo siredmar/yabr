@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
             printf("\n");
         }
         printf("\t\t%.2x\n", UartOutput[0]);
-        usleep(100000);
+        usleep(50000);
     }
 
 

@@ -16,14 +16,14 @@ int gyro_address = 0x68;                                     //MPU-6050 I2C addr
 int acc_calibration_value = -200;                            //Enter the accelerometer calibration value
 
 //Various settings
-//float pid_p_gain = 22;                                       //Gain setting for the P-controller (15)
-//float pid_i_gain = 0.50;                                      //Gain setting for the I-controller (1.5)
+float pid_p_gain = 34;                                       //Gain setting for the P-controller (15)
+float pid_i_gain = 0.90;                                      //Gain setting for the I-controller (1.5)
+float pid_d_gain = 20;                                       //Gain setting for the D-controller (30)
+//float pid_p_gain = 25;                                       //Gain setting for the P-controller (15)
+//float pid_i_gain = 1.10;                                      //Gain setting for the I-controller (1.5)
 //float pid_d_gain = 25;                                       //Gain setting for the D-controller (30)
-float pid_p_gain = 25;                                       //Gain setting for the P-controller (15)
-float pid_i_gain = 1.10;                                      //Gain setting for the I-controller (1.5)
-float pid_d_gain = 25;                                       //Gain setting for the D-controller (30)
-float turning_speed =   90;                                    //Turning speed (20)
-float max_target_speed = 300;                                //Max target speed (100)
+float turning_speed =   80;                                    //Turning speed (20)
+float max_target_speed = 200;                                //Max target speed (100)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Declaring global variables
@@ -44,11 +44,17 @@ float angle_gyro, angle_acc, angle, self_balance_pid_setpoint;
 float pid_error_temp, pid_i_mem, pid_setpoint, gyro_input, pid_output, pid_last_d_error;
 float pid_output_left, pid_output_right;
 
+
+int remoteMode = 1;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Setup basic functions
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void setup(){
-  Serial.begin(9600);                                                       //Start the serial port at 9600 kbps
+  //Serial.begin(9600);                                                       //Start the serial port at 9600 kbps
+  //Serial.println("AT+BAUD7");
+  //Serial.end();
+  Serial.begin(57600);
+  Serial.println("Yabr starting");
   Wire.begin();                                                             //Start the I2C bus as master
   TWBR = 12;                                                                //Set the I2C clock speed to 400kHz
 
@@ -108,14 +114,106 @@ void setup(){
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Main program loop
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+String inString = "";  
 void loop(){
-  if(Serial.available()){                                                   //If there is serial data available
-    received_byte = Serial.read();                                          //Load the received serial data in the received_byte variable
-    //Serial.print(received_byte);
-    receive_counter = 0;                                                    //Reset the receive_counter variable
+  if(Serial.available())
+  {                                                   //If there is serial data available
+    if(remoteMode == 1)
+    {
+      received_byte = Serial.read();                                          //Load the received serial data in the received_byte variable
+      if(received_byte == 'Z' || received_byte == 'z')
+      {
+        remoteMode = 0;
+        Serial.println("Disable remote control");
+      }
+      receive_counter = 0;                                                    //Reset the receive_counter variable
+    }
+    else
+    {
+       int inChar = Serial.read();
+
+        if (inChar != '\n') 
+        { 
+          inString += (char)inChar;
+        }
+        else 
+        {
+          if(inString[0] == 'P' || inString[0] == 'p')
+          {
+            inString.remove(0, 1);
+            pid_p_gain = inString.toFloat(); 
+            Serial.print("P: ");
+            Serial.print(pid_p_gain);
+            Serial.print(", I: ");
+            Serial.print(pid_i_gain);
+            Serial.print(", D: ");
+            Serial.print(pid_d_gain);
+            Serial.print("\r\n");
+          }
+          else if(inString[0] == 'I' || inString[0] == 'i')
+          {
+            inString.remove(0, 1);
+            pid_i_gain = inString.toFloat(); 
+            Serial.print("P: ");
+            Serial.print(pid_p_gain);
+            Serial.print(", I: ");
+            Serial.print(pid_i_gain);
+            Serial.print(", D: ");
+            Serial.print(pid_d_gain);
+            Serial.print("\r\n");
+          }
+          else if(inString[0] == 'D' || inString[0] == 'd')
+          {
+            inString.remove(0, 1);
+            pid_d_gain = inString.toFloat(); 
+            Serial.print("P: ");
+            Serial.print(pid_p_gain);
+            Serial.print(", I: ");
+            Serial.print(pid_i_gain);
+            Serial.print(", D: ");
+            Serial.print(pid_d_gain);
+            Serial.print("\r\n");
+          }   
+          else if(inString[0] == 'Z' || inString[0] == 'z')
+          {
+            remoteMode = 1;
+            Serial.println("Enable remote control");
+          }
+          else if(inString[0] == 'R' || inString[0] == 'r')
+          {
+            Serial.print("P: ");
+            Serial.print(pid_p_gain);
+            Serial.print(", I: ");
+            Serial.print(pid_i_gain);
+            Serial.print(", D: ");
+            Serial.print(pid_d_gain);
+            Serial.print("\r\n");
+          }
+          else if(inString[0] == 'V' || inString[0] == 'v')
+          {
+            Serial.print("Battery: ");
+            Serial.print(battery_voltage);
+            Serial.print(" V\r\n");
+          }
+          else
+          {
+            
+          }
+        
+          inString = "";
+          received_byte = 0;
+        }
+    }
   }
-  if(receive_counter <= 25)receive_counter ++;                              //The received byte will be valid for 25 program loops (100 milliseconds)
-  else received_byte = 0x00;                                                //After 100 milliseconds the received byte is deleted
+  if(receive_counter <= 25)
+  {
+      receive_counter ++;                              //The received byte will be valid for 25 program loops (100 milliseconds)
+  }
+  else 
+  {
+    received_byte = 0x00;       
+  }
+                                           //After 100 milliseconds the received byte is deleted
   
   //Load the battery voltage to the battery_voltage variable.
   //85 is the voltage compensation for the diode.
